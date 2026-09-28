@@ -2,11 +2,13 @@
 
 An explainable sentiment analysis system for Nepali-English code-mixed text, built on real-world reviews scraped from Daraz Nepal and YouTube. The project goes beyond classification accuracy — it uses SHAP and LIME to make model predictions transparent and interpretable.
 
+> **Update (September 2026).** The original training run and train/test split were not preserved. A reconstruction using the model settings recovered from the saved vectorizer and classifier reproduced the reported result: **93.2% accuracy and 0.898 macro-F1** on a 90/10 split, and **92.6%** when identical word-token sequences are kept on one side of the split. The labels in `final.csv` combine team annotation with Gemini-assisted labelling, so these scores measure agreement with that annotation process. A separate evaluation against newly human-labelled Daraz reviews is documented in [Romanized-Nepali-Sentiment-Rebuild](https://github.com/BipinRana/Romanized-Nepali-Sentiment-Rebuild). See the [retrospective](#-retrospective-2026) below.
+
 ---
 
 ## 🗂️ Project Overview
 
-- Collected and curated a dataset of **190,000+ user-generated reviews** from Daraz Nepal (custom Selenium scraper), YouTube (YouTube Data API), and Twitter
+- Collected and curated a dataset of **190,000+ user-generated reviews** from Daraz Nepal (custom Selenium scraper) and YouTube (YouTube Data API)
 - Manually labeled a substantial portion of the dataset to establish high-quality ground truth for supervised learning
 - Built a comprehensive **preprocessing pipeline** specifically designed for noisy, code-mixed Romanized Nepali-English text
 - Trained and evaluated **Logistic Regression, Linear SVC, and Random Forest** classifiers using TF-IDF features
@@ -99,6 +101,32 @@ The full system is deployed as a web app:
 - **mBERT continued pre-training + fine-tuning** — adapt multilingual BERT on in-domain code-mixed data, then fine-tune on the labeled dataset for context-aware sentiment classification
 - **Robust class balancing** — stratified sampling, synthetic augmentation, and class-weighted loss to improve minority-class recall
 - **Addressing TF-IDF bias** — replace bag-of-words representations with sequence-aware contextual embeddings to eliminate sentiment incongruence issues
+
+---
+
+## 🔁 Retrospective (2026)
+
+This section was added after the project ended. Everything above it is the original project record.
+
+**Reconstruction of the reported result.** The original training script, row order and split assignments were not preserved, so this is a close reconstruction rather than the exact original run. Settings were recovered from the saved artifacts: TF-IDF with word unigrams and bigrams (`min_df=2`, `max_features=10000`, sublinear TF) and logistic regression (`C=10`, balanced class weights, liblinear). Vocabulary and IDF were fitted only on training rows, the existing labels were kept unchanged, and no hyperparameter search was performed.
+
+| Split | Accuracy | Macro-F1 |
+|---|---|---|
+| 90/10, seed 42 | 93.24% | 0.898 |
+| Stratified 90/10, seed 42 | 93.08% | 0.896 |
+| Identical word-token sequences grouped on one side of the split* | 92.63% | 0.889 |
+| Original preprocessing reapplied, 90/10, seed 42 | 93.29% | 0.899 |
+| Majority-class baseline (90/10) | 64.75% | – |
+
+\*Because groups vary in size, this split used about 8.95% of rows for testing rather than exactly 10%.
+
+High internal accuracy persisted after separating identical token sequences. These experiments do not establish the original score's causes, and they do not rule out other overlap or annotation bias. Saved predictions, metrics and artifact hashes were independently verified.
+
+**Label provenance.** `final.csv` contains 191,887 non-empty rows (123,088 Positive, 46,737 Neutral, 22,062 Negative). Its labels combine team annotation with Gemini-assisted labelling, and the boundary between them was not recorded. The scores above therefore measure how well a model reproduces that annotation process on held-out rows of the same corpus, not agreement with independent human judgments.
+
+**Independent evaluation.** In a separate rebuild, a model trained only on 5,306 recovered human annotations was frozen before its test set was labelled, then evaluated on 378 newly human-labelled Daraz reviews: 80.95% accuracy against an 80.42% majority baseline, and 0.618 macro-F1. The two evaluations use different data, labels and training setups, so they measure different things and should not be read as one model outperforming the other. Details are in [Romanized-Nepali-Sentiment-Rebuild](https://github.com/BipinRana/Romanized-Nepali-Sentiment-Rebuild).
+
+The SHAP and LIME observations above (the heart emoji and the word "haru") come from the original model.
 
 ---
 
